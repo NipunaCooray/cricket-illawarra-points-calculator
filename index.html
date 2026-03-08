@@ -187,6 +187,16 @@
     .grade-pill.active {
       background: var(--green); color: #fff; border-color: var(--green);
     }
+    .history-filter-bar { margin-bottom: 1.1rem; }
+    .history-filter-bar .grade-filters { margin-bottom: .65rem; }
+    .team-filter-row { display: flex; align-items: center; gap: .5rem; }
+    .filter-label { font-size: .82rem; color: var(--muted); }
+    .team-select {
+      padding: .28rem .65rem; border-radius: 6px;
+      border: 1.5px solid var(--border);
+      background: var(--white); color: var(--text);
+      font-size: .85rem; font-family: inherit; cursor: pointer;
+    }
 
     /* ── Ladder Table ── */
     .ladder-wrap { overflow-x: auto; }
@@ -503,7 +513,7 @@
   <section id="tab-history" class="tab-pane">
     <div class="card">
       <div class="card-title">Match History</div>
-      <div id="history-filters" class="grade-filters"></div>
+      <div id="history-filters"></div>
       <div id="history-content"></div>
     </div>
   </section>
@@ -521,6 +531,7 @@
 let matches = JSON.parse(localStorage.getItem('ci_matches') || '[]');
 let ladderGrade   = 'all';
 let historyGrade  = 'all';
+let historyTeam   = 'all';
 let editingId     = null;
 
 function save() {
@@ -741,10 +752,21 @@ function renderLadder() {
 // ================================================================
 function renderHistory() {
   const grades = gradesInUse();
-  document.getElementById('history-filters').innerHTML = filterPills(grades, historyGrade, 'historyGrade');
+  const teams  = teamsInUse(historyGrade);
+  if (!teams.includes(historyTeam)) historyTeam = 'all';
+
+  const gradePills = filterPills(grades, historyGrade, 'historyGrade');
+  const teamSel    = teamFilter(teams, historyTeam);
+  const hasFilters = gradePills || teamSel;
+  document.getElementById('history-filters').innerHTML = hasFilters
+    ? `<div class="history-filter-bar">${gradePills ? `<div class="grade-filters">${gradePills}</div>` : ''}${teamSel}</div>`
+    : '';
 
   const filtered = [...matches]
-    .filter(m => historyGrade === 'all' || m.grade === historyGrade)
+    .filter(m =>
+      (historyGrade === 'all' || m.grade === historyGrade) &&
+      (historyTeam  === 'all' || m.t1 === historyTeam || m.t2 === historyTeam)
+    )
     .reverse();
   const el = document.getElementById('history-content');
 
@@ -794,6 +816,19 @@ function renderHistory() {
 // ================================================================
 function gradesInUse() {
   return ['all', ...new Set(matches.map(m => m.grade))];
+}
+
+function teamsInUse(grade) {
+  const ms = grade === 'all' ? matches : matches.filter(m => m.grade === grade);
+  return ['all', ...[...new Set(ms.flatMap(m => [m.t1, m.t2]))].sort()];
+}
+
+function teamFilter(teams, active) {
+  if (teams.length <= 1) return '';
+  const opts = teams.map(t =>
+    `<option value="${esc(t)}"${active === t ? ' selected' : ''}>${t === 'all' ? 'All Teams' : esc(t)}</option>`
+  ).join('');
+  return `<div class="team-filter-row"><span class="filter-label">Team:</span><select class="team-select" onchange="historyTeam=this.value;renderHistory()">${opts}</select></div>`;
 }
 
 function filterPills(grades, active, varName) {
