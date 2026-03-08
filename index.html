@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cricket Illawarra &ndash; Points Calculator</title>
+  <style>
+    :root {
+      --green:       #1b5e35;
+      --green-mid:   #2e7d4f;
+      --green-light: #e8f5ec;
+      --gold:        #c9900a;
+      --gold-bg:     #fef9ec;
+      --text:        #111827;
+      --muted:       #6b7280;
+      --border:      #d1d5db;
+      --bg:          #f3f4f6;
+      --white:       #ffffff;
+      --win-bg:      #dcfce7;  --win-text:    #166534;
+      --loss-bg:     #fee2e2;  --loss-text:   #991b1b;
+      --neutral-bg:  #f1f5f9;  --neutral-text:#475569;
+      --shadow:      0 1px 3px rgba(0,0,0,.10), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-md:   0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.05);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, var(--green) 0%, var(--green-mid) 100%);
+      color: #fff;
+      padding: 1.4rem 1.5rem 0;
+    }
+    .header-inner { max-width: 880px; margin: 0 auto; }
+    .header h1   { font-size: 1.45rem; font-weight: 700; letter-spacing: -.3px; }
+    .header p    { opacity: .75; font-size: .82rem; margin-top: .25rem; margin-bottom: .9rem; }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: .2rem; max-width: 880px; margin: 0 auto; }
+    .tab-btn {
+      background: rgba(255,255,255,.12);
+      border: none; color: rgba(255,255,255,.75);
+      padding: .55rem 1.15rem;
+      font-size: .85rem; font-weight: 500;
+      cursor: pointer; border-radius: 7px 7px 0 0;
+      transition: all .15s; font-family: inherit;
+    }
+    .tab-btn.active  { background: var(--bg); color: var(--green); font-weight: 700; }
+    .tab-btn:hover:not(.active) { background: rgba(255,255,255,.22); color: #fff; }
+
+    /* ── Layout ── */
+    .content { max-width: 880px; margin: 0 auto; padding: 1.5rem 1rem; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--white);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 1.25rem;
+    }
+    .card-title {
+      font-size: .78rem; font-weight: 700; color: var(--green);
+      text-transform: uppercase; letter-spacing: .06em;
+      margin-bottom: 1.25rem; padding-bottom: .7rem;
+      border-bottom: 1.5px solid var(--green-light);
+    }
+
+    /* ── Form Grid ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 560px) { .form-grid { grid-template-columns: 1fr; } }
+    .col-2 { grid-column: 1 / -1; }
+
+    .field { display: flex; flex-direction: column; gap: .3rem; }
+    .field label {
+      font-size: .72rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .05em;
+    }
+    .field input, .field select {
+      border: 1.5px solid var(--border); border-radius: 8px;
+      padding: .55rem .75rem; font-size: .95rem;
+      color: var(--text); background: #fff;
+      width: 100%; font-family: inherit;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .field input:focus, .field select:focus {
+      outline: none;
+      border-color: var(--green-mid);
+      box-shadow: 0 0 0 3px rgba(46,125,79,.15);
+    }
+    .field .hint { font-size: .7rem; color: var(--muted); }
+
+    .section-sep {
+      grid-column: 1 / -1;
+      display: flex; align-items: center; gap: .6rem;
+      font-size: .7rem; font-weight: 700; color: var(--green);
+      text-transform: uppercase; letter-spacing: .06em;
+      margin-top: .4rem;
+    }
+    .section-sep::after { content: ''; flex: 1; height: 1px; background: var(--green-light); }
+
+    /* Checkbox */
+    .check-label {
+      display: flex; align-items: center; gap: .5rem;
+      font-size: .85rem; color: var(--muted); cursor: pointer;
+    }
+    .check-label input[type="checkbox"] {
+      width: 15px; height: 15px; accent-color: var(--green); cursor: pointer;
+    }
+
+    /* ── Live Preview ── */
+    .preview-box {
+      background: var(--green-light);
+      border: 1.5px solid #b5d9bf;
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+      margin-top: 1.1rem;
+      display: none;
+    }
+    .preview-box.on { display: block; }
+    .preview-label {
+      font-size: .7rem; font-weight: 700; color: var(--green);
+      text-transform: uppercase; letter-spacing: .06em;
+      margin-bottom: .65rem;
+    }
+    .preview-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: .35rem 0;
+    }
+    .preview-row + .preview-row { border-top: 1px solid #c6e4cc; }
+    .preview-team      { font-size: .875rem; }
+    .preview-team .sub { font-size: .68rem; color: var(--muted); margin-left: .3rem; }
+    .pts-badge {
+      font-weight: 700; font-size: .85rem;
+      padding: .22rem .65rem; border-radius: 20px;
+      background: var(--green); color: #fff;
+    }
+    .pts-badge.gold { background: var(--gold); color: #fff; }
+    .pts-badge.grey { background: #9ca3af; color: #fff; }
+    .preview-note {
+      margin-top: .55rem; padding-top: .55rem;
+      border-top: 1px dashed #b5d9bf;
+      font-size: .76rem; color: var(--green);
+    }
+
+    /* ── Submit ── */
+    .btn-add {
+      width: 100%; margin-top: 1.2rem; padding: .8rem;
+      background: var(--green); color: #fff;
+      border: none; border-radius: 10px;
+      font-size: .95rem; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      transition: background .15s, transform .1s;
+    }
+    .btn-add:hover  { background: var(--green-mid); }
+    .btn-add:active { transform: scale(.99); }
+
+    /* ── Info Banner ── */
+    .info-banner {
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: 9px; padding: .75rem 1rem;
+      font-size: .8rem; color: #1e40af; line-height: 1.55;
+    }
+
+    /* ── Grade Filter Pills ── */
+    .grade-filters {
+      display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1.1rem;
+    }
+    .grade-pill {
+      padding: .3rem .85rem; border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: #fff; color: var(--muted);
+      font-size: .78rem; font-weight: 600; cursor: pointer;
+      transition: all .15s; font-family: inherit;
+    }
+    .grade-pill.active {
+      background: var(--green); color: #fff; border-color: var(--green);
+    }
+
+    /* ── Ladder Table ── */
+    .ladder-wrap { overflow-x: auto; }
+    .ladder-table { width: 100%; border-collapse: collapse; min-width: 420px; }
+    .ladder-table th {
+      background: var(--green); color: #fff;
+      padding: .6rem .75rem; font-size: .72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em; text-align: center;
+    }
+    .ladder-table th:first-child { text-align: left; border-radius: 7px 0 0 0; }
+    .ladder-table th:last-child  { border-radius: 0 7px 0 0; }
+    .ladder-table td {
+      padding: .65rem .75rem; border-bottom: 1px solid var(--border);
+      text-align: center; font-size: .875rem;
+    }
+    .ladder-table td:first-child { text-align: left; }
+    .ladder-table tr:last-child td { border-bottom: none; }
+    .ladder-table tbody tr:hover td { background: var(--green-light); }
+    .rank     { display: inline-block; width: 1.4rem; color: var(--muted); font-size: .72rem; }
+    .t-name   { font-weight: 700; }
+    .pts-col  { font-weight: 800; font-size: 1rem; color: var(--green); }
+    .legend   { font-size: .72rem; color: var(--muted); margin-top: .65rem; }
+
+    /* ── History Items ── */
+    .match-item {
+      display: flex; align-items: flex-start; gap: .9rem;
+      padding: 1rem 1.15rem; background: #fff;
+      border-radius: 10px; border: 1.5px solid var(--border);
+      margin-bottom: .7rem; box-shadow: var(--shadow);
+    }
+    .m-grade {
+      background: var(--green); color: #fff;
+      border-radius: 6px; padding: .28rem .55rem;
+      font-size: .68rem; font-weight: 700;
+      white-space: nowrap; flex-shrink: 0; text-align: center;
+    }
+    .m-grade small { display: block; font-weight: 400; opacity: .85; }
+    .m-info  { flex: 1; min-width: 0; }
+    .m-teams { font-weight: 700; font-size: .92rem; margin-bottom: .18rem; }
+    .m-score { font-size: .75rem; color: var(--muted); }
+    .m-result{ font-size: .78rem; color: var(--green); font-weight: 600; margin-top: .2rem; }
+    .m-pts   { display: flex; flex-direction: column; gap: .28rem; align-items: flex-end; flex-shrink: 0; }
+    .chip {
+      font-size: .73rem; font-weight: 700;
+      padding: .2rem .6rem; border-radius: 20px; white-space: nowrap;
+    }
+    .chip.win  { background: var(--win-bg);     color: var(--win-text); }
+    .chip.loss { background: var(--loss-bg);    color: var(--loss-text); }
+    .chip.draw { background: var(--neutral-bg); color: var(--neutral-text); }
+    .chip.bp   { background: var(--gold-bg);    color: var(--gold); border: 1px solid #fbbf24; }
+    .del-btn {
+      background: none; border: 1px solid var(--border);
+      border-radius: 6px; color: var(--muted);
+      font-size: .7rem; padding: .18rem .5rem;
+      cursor: pointer; margin-top: .2rem; font-family: inherit;
+      transition: all .15s;
+    }
+    .del-btn:hover { background: var(--loss-bg); border-color: #dc2626; color: #dc2626; }
+    .edit-btn {
+      background: none; border: 1px solid var(--border);
+      border-radius: 6px; color: var(--muted);
+      font-size: .7rem; padding: .18rem .5rem;
+      cursor: pointer; font-family: inherit;
+      transition: all .15s;
+    }
+    .edit-btn:hover { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; }
+
+    /* ── Edit mode banner ── */
+    .edit-banner {
+      display: none;
+      align-items: center; justify-content: space-between;
+      background: #fffbeb; border: 1.5px solid #fbbf24;
+      border-radius: 9px; padding: .65rem 1rem;
+      margin-top: 1rem; font-size: .85rem; gap: .5rem;
+    }
+    .edit-banner.on { display: flex; }
+    .edit-banner strong { color: var(--gold); }
+    .cancel-edit-btn {
+      background: none; border: 1.5px solid #fbbf24;
+      border-radius: 6px; color: var(--gold);
+      font-size: .8rem; font-weight: 600;
+      padding: .25rem .75rem; cursor: pointer;
+      font-family: inherit; white-space: nowrap;
+      transition: all .15s; flex-shrink: 0;
+    }
+    .cancel-edit-btn:hover { background: #fef3c7; }
+
+    /* ── Empty State ── */
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+    .empty-icon { font-size: 2.5rem; margin-bottom: .6rem; }
+    .empty p    { font-size: .875rem; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 1.5rem; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #111827; color: #fff;
+      padding: .65rem 1.4rem; border-radius: 30px;
+      font-size: .85rem; font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,.25);
+      transition: transform .28s cubic-bezier(.34,1.56,.64,1);
+      z-index: 999; white-space: nowrap; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- ======== HEADER ======== -->
+<header class="header">
+  <div class="header-inner">
+    <h1>Cricket Illawarra &mdash; Points Calculator</h1>
+    <p>2025&ndash;26 Season &nbsp;&middot;&nbsp; All Grades &nbsp;&middot;&nbsp; Limited Over Format</p>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('add',this)">Add Match</button>
+    <button class="tab-btn"        onclick="showTab('ladder',this)">Points Ladder</button>
+    <button class="tab-btn"        onclick="showTab('history',this)">Match History</button>
+  </div>
+</header>
+
+<!-- ======== MAIN ======== -->
+<main class="content">
+
+  <!-- ── ADD MATCH ── -->
+  <section id="tab-add" class="tab-pane active">
+    <div class="card">
+      <div class="card-title">Enter Match Details</div>
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Grade</label>
+          <select id="f-grade" onchange="onFormChange()">
+            <option value="1G">1st Grade &nbsp;(50 overs)</option>
+            <option value="2G">2nd Grade (50 overs)</option>
+            <option value="3G">3rd Grade (45 overs)</option>
+            <option value="4G">4th Grade (45 overs)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Round <span style="font-weight:400;text-transform:none">(optional)</span></label>
+          <input type="number" id="f-round" placeholder="e.g. 5" min="1" max="25">
+        </div>
+
+        <div class="field">
+          <label>Team Batting First</label>
+          <input type="text" id="f-t1" list="dl-teams" placeholder="Team name" required autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label>Team Batting Second</label>
+          <input type="text" id="f-t2" list="dl-teams" placeholder="Team name" required autocomplete="off">
+        </div>
+
+        <!-- Result type -->
+        <div class="section-sep col-2">Result</div>
+
+        <div class="field col-2">
+          <label>Match Outcome</label>
+          <select id="f-type" onchange="onTypeChange()">
+            <option value="normal">Match Completed (normal play / DLS)</option>
+            <option value="tie">Tie</option>
+            <option value="abandoned">Abandoned / No Result</option>
+            <option value="cancelled">Cancelled (total washout)</option>
+            <option value="forfeit">Forfeit</option>
+          </select>
+        </div>
+
+        <!-- ── Normal match fields ── -->
+        <div id="normal-fields" class="col-2">
+          <div class="form-grid">
+
+            <div class="section-sep col-2">Batting First Innings</div>
+
+            <div class="field">
+              <label>Runs Scored</label>
+              <input type="number" id="f-t1r" placeholder="e.g. 220" min="0" oninput="onFormChange()">
+            </div>
+            <div class="field">
+              <label>Overs Faced</label>
+              <input type="text" id="f-t1o" placeholder="e.g. 50 or 49.3" oninput="onFormChange()">
+              <span class="hint">Format: overs.balls &nbsp;(e.g. 49.3 = 49 overs &amp; 3 balls)</span>
+            </div>
+
+            <div class="section-sep col-2">Batting Second Innings</div>
+
+            <div class="field">
+              <label>Runs Scored</label>
+              <input type="number" id="f-t2r" placeholder="e.g. 185" min="0" oninput="onFormChange()">
+            </div>
+            <div class="field">
+              <label>Overs Faced / Won In</label>
+              <input type="text" id="f-t2o" placeholder="e.g. 47 or 33.2" oninput="onFormChange()">
+              <span class="hint">If batting 2nd won: enter the over they hit the winning run</span>
+            </div>
+
+            <div class="field col-2" style="margin-top:.2rem">
+              <label class="check-label">
+                <input type="checkbox" id="f-reduced" onchange="onReducedChange()">
+                Reduced overs match (changes bonus point over thresholds)
+              </label>
+            </div>
+
+            <div id="reduced-field" class="field col-2" style="display:none">
+              <label>Max Overs Allocated to Batting Second Team</label>
+              <input type="text" id="f-maxo" placeholder="e.g. 35" oninput="onFormChange()">
+            </div>
+
+            <div class="field col-2" style="margin-top:.35rem">
+              <label class="check-label">
+                <input type="checkbox" id="f-dls" onchange="onDlsChange()">
+                DLS (Duckworth/Lewis) applied &mdash; adjusts bonus point calculation
+              </label>
+            </div>
+
+            <div id="dls-fields" class="col-2" style="display:none">
+              <div class="form-grid" style="background:var(--gold-bg);border:1.5px solid #fbbf24;border-radius:9px;padding:.9rem 1rem;gap:.75rem">
+
+                <div class="field col-2">
+                  <label>DLS Scenario</label>
+                  <select id="f-dls-type" onchange="onDlsScenarioChange()">
+                    <option value="concluded">Match concluded (DLS target set, match finished)</option>
+                    <option value="abandoned">Match abandoned, result determined via DLS</option>
+                  </select>
+                </div>
+
+                <div id="dls-target-field" class="field col-2">
+                  <label>DLS Revised Target Score (for batting second team)</label>
+                  <input type="number" id="f-dls-target" placeholder="e.g. 185" min="1" oninput="onFormChange()">
+                  <span class="hint">Bonus ratio uses <strong>(Target &minus; 1)</strong> as Team 1&rsquo;s effective score &mdash; per Rule 4b</span>
+                </div>
+
+                <div id="dls-par-field" class="field col-2" style="display:none">
+                  <label>Team 2 Par Score at Abandonment</label>
+                  <input type="number" id="f-dls-par" placeholder="e.g. 120" min="0" oninput="onFormChange()">
+                  <span class="hint">Team 1 is credited with this Par Score for bonus point purposes &mdash; per Rule 4a</span>
+                </div>
+
+                <div class="field col-2">
+                  <span class="hint" style="color:#92400e">
+                    Also tick &ldquo;Reduced overs&rdquo; above and enter batting second&rsquo;s max allocated overs
+                    so the batting-second bonus thresholds are calculated correctly.
+                  </span>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <!-- ── end normal fields ── -->
+
+        <!-- ── Forfeit field ── -->
+        <div id="forfeit-fields" class="field col-2" style="display:none">
+          <label>Which team is forfeiting?</label>
+          <select id="f-forfeit" onchange="onFormChange()">
+            <option value="team1">Team Batting First</option>
+            <option value="team2">Team Batting Second</option>
+          </select>
+        </div>
+
+      </div><!-- /form-grid -->
+
+      <!-- Live Preview -->
+      <div id="preview-box" class="preview-box">
+        <div class="preview-label">Points Preview</div>
+        <div id="preview-content"></div>
+      </div>
+
+      <div id="edit-banner" class="edit-banner">
+        <span>Editing: <strong id="edit-banner-teams"></strong></span>
+        <button class="cancel-edit-btn" onclick="cancelEdit()">Cancel Edit</button>
+      </div>
+
+      <button id="btn-submit" class="btn-add" onclick="addMatch()">Add Match to Ladder</button>
+    </div>
+
+    <div class="info-banner">
+      <strong>Bonus Points (1G &amp; 2G only):</strong>
+      Batting first &mdash; wins ratio (T1 runs &divide; T2 runs) &ge;1.5 = 1BP (7pts / 1pt) &nbsp;|&nbsp; &ge;2.0 = 2BP (8pts / 0pts).
+      Batting second &mdash; win by end of over 33.2 = 1BP &nbsp;|&nbsp; win by end of over 25 = 2BP (standard 50-over match).
+      Reduced match: win within 66.67% of max overs = 1BP &nbsp;|&nbsp; within 50% = 2BP.
+      No bonus points in 3G or 4G.
+    </div>
+  </section>
+
+  <!-- ── LADDER ── -->
+  <section id="tab-ladder" class="tab-pane">
+    <div class="card">
+      <div class="card-title">Season Points Ladder</div>
+      <div id="ladder-filters" class="grade-filters"></div>
+      <div id="ladder-content"></div>
+    </div>
+  </section>
+
+  <!-- ── HISTORY ── -->
+  <section id="tab-history" class="tab-pane">
+    <div class="card">
+      <div class="card-title">Match History</div>
+      <div id="history-filters" class="grade-filters"></div>
+      <div id="history-content"></div>
+    </div>
+  </section>
+
+</main>
+
+<datalist id="dl-teams"></datalist>
+<div id="toast" class="toast"></div>
+
+<script>
+// ================================================================
+//  State & Persistence
+// ================================================================
+let matches = JSON.parse(localStorage.getItem('ci_matches') || '[]');
+let ladderGrade   = 'all';
+let historyGrade  = 'all';
+let editingId     = null;
+
+function save() {
+  localStorage.setItem('ci_matches', JSON.stringify(matches));
+}
+
+// ================================================================
+//  Overs Utility
+// ================================================================
+/**
+ * Convert cricket overs notation (e.g. "33.2" = 33 overs & 2 balls)
+ * to a true decimal (33.333...).  Returns null on invalid input.
+ */
+function o2d(val) {
+  if (val === '' || val == null) return null;
+  const s = String(val).trim();
+  if (!s) return null;
+  const dot = s.indexOf('.');
+  if (dot === -1) {
+    const n = parseInt(s);
+    return isNaN(n) ? null : n;
+  }
+  const whole = parseInt(s.slice(0, dot));
+  const balls = parseInt(s.slice(dot + 1));
+  if (isNaN(whole) || isNaN(balls) || balls > 5 || balls < 0) return null;
+  return whole + balls / 6;
+}
+
+// ================================================================
+//  Points Calculation
+// ================================================================
+function calcPoints(m) {
+  const bonus = m.grade === '1G' || m.grade === '2G';
+
+  // Non-play results
+  if (m.type === 'tie') {
+    return { t1: 4, t2: 4, bp: 0, winner: null, desc: 'Tie' };
+  }
+  if (m.type === 'abandoned') {
+    const p = bonus ? 4 : 3;
+    return { t1: p, t2: p, bp: 0, winner: null, desc: 'Abandoned / No Result' };
+  }
+  if (m.type === 'cancelled') {
+    const p = bonus ? 4 : 3;
+    return { t1: p, t2: p, bp: 0, winner: null, desc: 'Cancelled' };
+  }
+  if (m.type === 'forfeit') {
+    return m.forfeit === 'team2'
+      ? { t1: 6, t2: 2, bp: 0, winner: 'team1', desc: `${m.t1} wins (forfeit)` }
+      : { t1: 2, t2: 6, bp: 0, winner: 'team2', desc: `${m.t2} wins (forfeit)` };
+  }
+
+  // Normal match
+  const r1 = parseInt(m.t1r) || 0;
+  const r2 = parseInt(m.t2r) || 0;
+  const o1 = o2d(m.t1o);
+  const o2 = o2d(m.t2o);
+  if (o1 === null || o2 === null) return null;
+
+  // Determine winner:
+  //   DLS concluded  → compare Team 2 actual vs DLS revised target
+  //   DLS abandoned  → compare Team 2 actual vs Par Score
+  //   Normal         → compare raw runs
+  let bat1won;
+  if (m.dls && m.dlsScenario === 'concluded' && m.dlsTarget) {
+    const tgt = parseInt(m.dlsTarget) || 0;
+    if (r2 === tgt) return { t1: 4, t2: 4, bp: 0, winner: null, desc: 'Tie' };
+    bat1won = r2 < tgt;  // Team 2 fell short of target → batting-first team wins
+  } else if (m.dls && m.dlsScenario === 'abandoned' && m.dlsPar != null && m.dlsPar !== '') {
+    const par = parseInt(m.dlsPar) || 0;
+    if (r2 === par) return { t1: 4, t2: 4, bp: 0, winner: null, desc: 'Tie' };
+    bat1won = r2 < par;  // Team 2 below par at abandonment → batting-first team wins
+  } else {
+    if (r1 === r2) return { t1: 4, t2: 4, bp: 0, winner: null, desc: 'Tie' };
+    bat1won = r1 > r2;
+  }
+
+  // 3G / 4G — no bonus points
+  if (!bonus) {
+    return bat1won
+      ? { t1: 6, t2: 2, bp: 0, winner: 'team1', desc: `${m.t1} wins` }
+      : { t1: 2, t2: 6, bp: 0, winner: 'team2', desc: `${m.t2} wins` };
+  }
+
+  // 1G / 2G — check bonus points
+  let bp = 0;
+  let extraInfo = null;
+
+  if (bat1won) {
+    // Runs ratio = Team1 total runs / Team2 total runs
+    // Per document examples: 200/142 = 1.41, 200/128 = 1.56, 200/134 = 1.49
+    //
+    // DLS adjustment (Rule 4):
+    //   4a — abandoned, DLS result: Team 1 credited with Team 2's Par Score
+    //   4b — concluded, DLS applied: Team 1 credited with (DLS Target − 1)
+    let effectiveT1 = r1;
+    let dlsNote = null;
+    if (m.dls) {
+      if (m.dlsScenario === 'concluded' && m.dlsTarget) {
+        effectiveT1 = Math.max(0, (parseInt(m.dlsTarget) || 0) - 1);
+        dlsNote = `DLS adj. (Rule 4b): effective T1 = ${effectiveT1}`;
+      } else if (m.dlsScenario === 'abandoned' && m.dlsPar !== '' && m.dlsPar != null) {
+        effectiveT1 = parseInt(m.dlsPar) || 0;
+        dlsNote = `DLS adj. (Rule 4a): effective T1 = ${effectiveT1} (Par Score)`;
+      }
+    }
+    const ratio = r2 > 0 ? effectiveT1 / r2 : Infinity;
+    bp = ratio >= 2.0 ? 2 : ratio >= 1.5 ? 1 : 0;
+    extraInfo = { ratio: isFinite(ratio) ? ratio.toFixed(2) : '&infin;', dlsNote };
+    return {
+      t1: 6 + bp, t2: Math.max(0, 2 - bp),
+      bp, winner: 'team1', extra: extraInfo,
+      desc: `${m.t1} wins${bp ? ' (+' + bp + 'BP)' : ''}${m.dls ? ' (DLS)' : ''}`
+    };
+  } else {
+    // Batting second won — check over threshold
+    const stdMax = 50;
+    let maxO;
+    if (m.reduced && m.maxo) {
+      maxO = o2d(m.maxo);
+      if (maxO === null) maxO = stdMax;
+    } else {
+      maxO = stdMax;
+    }
+    const isReduced = m.reduced && m.maxo && o2d(m.maxo) !== null && o2d(m.maxo) !== stdMax;
+    let thr1, thr2;
+    if (!isReduced) {
+      thr1 = 33 + 2 / 6; // 33.2 overs
+      thr2 = 25;
+    } else {
+      thr1 = maxO * (2 / 3);  // 66.67 %
+      thr2 = maxO * 0.5;      // 50 %
+    }
+    bp = o2 <= thr2 ? 2 : o2 <= thr1 ? 1 : 0;
+    return {
+      t1: Math.max(0, 2 - bp), t2: 6 + bp,
+      bp, winner: 'team2',
+      desc: `${m.t2} wins${bp ? ' (+' + bp + 'BP)' : ''}`
+    };
+  }
+}
+
+// ================================================================
+//  Ladder
+// ================================================================
+function buildLadder(grade) {
+  const teams = {};
+  const add = (name) => {
+    if (!teams[name]) {
+      teams[name] = { name, P:0, W:0, L:0, T:0, A:0, Pts:0 };
+    }
+  };
+  matches
+    .filter(m => grade === 'all' || m.grade === grade)
+    .forEach(m => {
+      const r = calcPoints(m);
+      if (!r) return;
+      add(m.t1); add(m.t2);
+      teams[m.t1].P++;  teams[m.t2].P++;
+      teams[m.t1].Pts += r.t1;  teams[m.t2].Pts += r.t2;
+      const d = r.desc.toLowerCase();
+      if (d.includes('abandoned') || d.includes('cancelled')) {
+        teams[m.t1].A++; teams[m.t2].A++;
+      } else if (d.includes('tie')) {
+        teams[m.t1].T++; teams[m.t2].T++;
+      } else if (r.winner === 'team1') {
+        teams[m.t1].W++; teams[m.t2].L++;
+      } else if (r.winner === 'team2') {
+        teams[m.t2].W++; teams[m.t1].L++;
+      }
+    });
+  return Object.values(teams).sort((a, b) => b.Pts - a.Pts || b.W - a.W);
+}
+
+// ================================================================
+//  Render: Ladder
+// ================================================================
+function renderLadder() {
+  const grades = gradesInUse();
+  // Filter pills
+  document.getElementById('ladder-filters').innerHTML = filterPills(grades, ladderGrade, 'ladderGrade');
+
+  const ladder = buildLadder(ladderGrade);
+  const el = document.getElementById('ladder-content');
+
+  if (ladder.length === 0) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">&#128202;</div><p>No matches recorded yet for this grade.</p></div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="ladder-wrap">
+    <table class="ladder-table">
+      <thead><tr>
+        <th>Team</th>
+        <th title="Played">P</th>
+        <th title="Won">W</th>
+        <th title="Lost">L</th>
+        <th title="Tied">T</th>
+        <th title="Abandoned">A</th>
+        <th title="Points">Pts</th>
+      </tr></thead>
+      <tbody>
+        ${ladder.map((t, i) => `
+          <tr>
+            <td><span class="rank">${i + 1}</span><span class="t-name">${esc(t.name)}</span></td>
+            <td>${t.P}</td><td>${t.W}</td><td>${t.L}</td><td>${t.T}</td><td>${t.A}</td>
+            <td class="pts-col">${t.Pts}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>
+    <p class="legend">P=Played &middot; W=Won &middot; L=Lost &middot; T=Tied &middot; A=Abandoned &middot; Sorted by Points, then Wins</p>
+  `;
+}
+
+// ================================================================
+//  Render: History
+// ================================================================
+function renderHistory() {
+  const grades = gradesInUse();
+  document.getElementById('history-filters').innerHTML = filterPills(grades, historyGrade, 'historyGrade');
+
+  const filtered = [...matches]
+    .filter(m => historyGrade === 'all' || m.grade === historyGrade)
+    .reverse();
+  const el = document.getElementById('history-content');
+
+  if (filtered.length === 0) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">&#128221;</div><p>No matches recorded yet.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = filtered.map(m => {
+    const r = calcPoints(m);
+    if (!r) return '';
+
+    let scoreText;
+    if (m.type === 'normal') {
+      scoreText = `${esc(m.t1)}: ${m.t1r}/${m.t1o} &nbsp;&nbsp;${esc(m.t2)}: ${m.t2r}/${m.t2o}`;
+    } else {
+      scoreText = m.type.charAt(0).toUpperCase() + m.type.slice(1);
+    }
+
+    const cls1 = r.winner === 'team1' ? 'win' : r.winner === null ? 'draw' : 'loss';
+    const cls2 = r.winner === 'team2' ? 'win' : r.winner === null ? 'draw' : 'loss';
+    const bp1  = r.winner === 'team1' && r.bp > 0 ? ' bp' : '';
+    const bp2  = r.winner === 'team2' && r.bp > 0 ? ' bp' : '';
+    const ratioStr = r.extra?.ratio ? ` &middot; Runs ratio: ${r.extra.ratio}&times;` : '';
+    const dlsStr   = r.extra?.dlsNote ? ` &middot; <em>${r.extra.dlsNote}</em>` : '';
+
+    return `
+      <div class="match-item">
+        <div class="m-grade">${esc(m.grade)}${m.round ? `<small>Rd ${m.round}</small>` : ''}</div>
+        <div class="m-info">
+          <div class="m-teams">${esc(m.t1)} vs ${esc(m.t2)}</div>
+          <div class="m-score">${scoreText}</div>
+          <div class="m-result">${r.desc}${ratioStr}${dlsStr}</div>
+        </div>
+        <div class="m-pts">
+          <div class="chip ${cls1}${bp1}">${esc(m.t1)}: ${r.t1}pts</div>
+          <div class="chip ${cls2}${bp2}">${esc(m.t2)}: ${r.t2}pts</div>
+          <button class="edit-btn" onclick="editMatch(${m.id})">Edit</button>
+          <button class="del-btn" onclick="deleteMatch(${m.id})">Remove</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ================================================================
+//  Filter Helpers
+// ================================================================
+function gradesInUse() {
+  return ['all', ...new Set(matches.map(m => m.grade))];
+}
+
+function filterPills(grades, active, varName) {
+  if (grades.length <= 2) return ''; // only 'all' + one grade — no need
+  return grades.map(g => {
+    const label = g === 'all' ? 'All Grades' : g;
+    const cls   = active === g ? 'active' : '';
+    return `<button class="grade-pill ${cls}" onclick="${varName}='${g}'; render${varName === 'ladderGrade' ? 'Ladder' : 'History'}()">${label}</button>`;
+  }).join('');
+}
+
+// ================================================================
+//  Form: event handlers
+// ================================================================
+function onTypeChange() {
+  const t = document.getElementById('f-type').value;
+  document.getElementById('normal-fields').style.display  = t === 'normal'  ? '' : 'none';
+  document.getElementById('forfeit-fields').style.display = t === 'forfeit' ? '' : 'none';
+  onFormChange();
+}
+
+function onReducedChange() {
+  document.getElementById('reduced-field').style.display =
+    document.getElementById('f-reduced').checked ? '' : 'none';
+  onFormChange();
+}
+
+function onDlsChange() {
+  document.getElementById('dls-fields').style.display =
+    document.getElementById('f-dls').checked ? '' : 'none';
+  onFormChange();
+}
+
+function onDlsScenarioChange() {
+  const t = document.getElementById('f-dls-type').value;
+  document.getElementById('dls-target-field').style.display = t === 'concluded' ? '' : 'none';
+  document.getElementById('dls-par-field').style.display    = t === 'abandoned'  ? '' : 'none';
+  onFormChange();
+}
+
+function onFormChange() {
+  const previewBox = document.getElementById('preview-box');
+  const type    = document.getElementById('f-type').value;
+  const grade   = document.getElementById('f-grade').value;
+  const t1name  = document.getElementById('f-t1').value.trim() || 'Batting First';
+  const t2name  = document.getElementById('f-t2').value.trim() || 'Batting Second';
+  const reduced = document.getElementById('f-reduced').checked;
+
+  const mock = {
+    grade, type,
+    t1: t1name, t2: t2name,
+    t1r: document.getElementById('f-t1r')?.value,
+    t1o: document.getElementById('f-t1o')?.value,
+    t2r: document.getElementById('f-t2r')?.value,
+    t2o: document.getElementById('f-t2o')?.value,
+    reduced,
+    maxo:        document.getElementById('f-maxo')?.value,
+    forfeit:     document.getElementById('f-forfeit')?.value,
+    dls:         document.getElementById('f-dls')?.checked,
+    dlsScenario: document.getElementById('f-dls-type')?.value,
+    dlsTarget:   document.getElementById('f-dls-target')?.value,
+    dlsPar:      document.getElementById('f-dls-par')?.value,
+  };
+
+  // For normal matches, require all four score fields before showing preview
+  if (type === 'normal' && (!mock.t1r || !mock.t1o || !mock.t2r || !mock.t2o)) {
+    previewBox.classList.remove('on');
+    return;
+  }
+
+  const r = calcPoints(mock);
+  if (!r) { previewBox.classList.remove('on'); return; }
+
+  const badge1 = r.winner === 'team1' && r.bp > 0 ? 'gold' : r.t1 === 0 ? 'grey' : '';
+  const badge2 = r.winner === 'team2' && r.bp > 0 ? 'gold' : r.t2 === 0 ? 'grey' : '';
+
+  let note = '';
+  if (r.extra?.ratio) {
+    if (r.bp === 2)      note = `Runs ratio: <strong>${r.extra.ratio}&times;</strong> &mdash; 2 Bonus Points awarded`;
+    else if (r.bp === 1) note = `Runs ratio: <strong>${r.extra.ratio}&times;</strong> &mdash; 1 Bonus Point awarded`;
+    else                 note = `Runs ratio: <strong>${r.extra.ratio}&times;</strong> &mdash; No bonus point`;
+    if (r.extra.dlsNote) note += `<br><span style="font-size:.7rem">${r.extra.dlsNote}</span>`;
+  } else if (r.bp > 0) {
+    note = `${r.bp === 2 ? '2 Bonus Points' : '1 Bonus Point'} &mdash; batting second won within over threshold`;
+  }
+
+  document.getElementById('preview-content').innerHTML = `
+    <div class="preview-row">
+      <span class="preview-team">${esc(t1name)}<span class="sub">(bat 1st)</span></span>
+      <span class="pts-badge ${badge1}">${r.t1} pts</span>
+    </div>
+    <div class="preview-row">
+      <span class="preview-team">${esc(t2name)}<span class="sub">(bat 2nd)</span></span>
+      <span class="pts-badge ${badge2}">${r.t2} pts</span>
+    </div>
+    ${note ? `<div class="preview-note">${note}</div>` : ''}
+  `;
+  previewBox.classList.add('on');
+}
+
+// ================================================================
+//  Add Match
+// ================================================================
+function addMatch() {
+  const t1   = document.getElementById('f-t1').value.trim();
+  const t2   = document.getElementById('f-t2').value.trim();
+  if (!t1 || !t2) { toast('Please enter both team names'); return; }
+  if (t1.toLowerCase() === t2.toLowerCase()) { toast('Teams must be different'); return; }
+
+  const type    = document.getElementById('f-type').value;
+  const reduced = document.getElementById('f-reduced').checked;
+
+  const m = {
+    id:     Date.now(),
+    grade:  document.getElementById('f-grade').value,
+    round:  document.getElementById('f-round').value || null,
+    t1, t2, type,
+    t1r: document.getElementById('f-t1r')?.value || '',
+    t1o: document.getElementById('f-t1o')?.value || '',
+    t2r: document.getElementById('f-t2r')?.value || '',
+    t2o: document.getElementById('f-t2o')?.value || '',
+    reduced,
+    maxo:        document.getElementById('f-maxo')?.value || null,
+    forfeit:     document.getElementById('f-forfeit')?.value,
+    dls:         document.getElementById('f-dls')?.checked || false,
+    dlsScenario: document.getElementById('f-dls-type')?.value || 'concluded',
+    dlsTarget:   document.getElementById('f-dls-target')?.value || null,
+    dlsPar:      document.getElementById('f-dls-par')?.value ?? null,
+  };
+
+  if (type === 'normal') {
+    if (!m.t1r || !m.t1o || !m.t2r || !m.t2o) { toast('Please fill in all innings details'); return; }
+    if (o2d(m.t1o) === null) { toast('Invalid overs format for batting first (use X.Y where Y is balls 0-5)'); return; }
+    if (o2d(m.t2o) === null) { toast('Invalid overs format for batting second (use X.Y where Y is balls 0-5)'); return; }
+  }
+
+  const r = calcPoints(m);
+  if (!r) { toast('Could not calculate points — check your inputs'); return; }
+
+  if (editingId !== null) {
+    m.id = editingId; // preserve original id
+    const idx = matches.findIndex(x => x.id === editingId);
+    if (idx !== -1) matches[idx] = m;
+    editingId = null;
+    save();
+    updateTeamsList();
+    resetForm();
+    toast(`Match updated — ${r.desc}`);
+  } else {
+    matches.push(m);
+    save();
+    updateTeamsList();
+    resetForm();
+    toast(`Match added — ${r.desc}`);
+  }
+}
+
+// ================================================================
+//  Edit Match
+// ================================================================
+function editMatch(id) {
+  const m = matches.find(m => m.id === id);
+  if (!m) return;
+
+  // Switch to Add Match tab
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-add').classList.add('active');
+  document.querySelector('.tab-btn').classList.add('active');
+
+  // Populate base fields
+  document.getElementById('f-grade').value = m.grade;
+  document.getElementById('f-round').value = m.round || '';
+  document.getElementById('f-t1').value    = m.t1;
+  document.getElementById('f-t2').value    = m.t2;
+  document.getElementById('f-type').value  = m.type;
+
+  // Trigger type visibility
+  document.getElementById('normal-fields').style.display  = m.type === 'normal'  ? '' : 'none';
+  document.getElementById('forfeit-fields').style.display = m.type === 'forfeit' ? '' : 'none';
+
+  if (m.type === 'normal') {
+    document.getElementById('f-t1r').value = m.t1r;
+    document.getElementById('f-t1o').value = m.t1o;
+    document.getElementById('f-t2r').value = m.t2r;
+    document.getElementById('f-t2o').value = m.t2o;
+
+    // Reduced overs
+    document.getElementById('f-reduced').checked = !!m.reduced;
+    document.getElementById('reduced-field').style.display = m.reduced ? '' : 'none';
+    document.getElementById('f-maxo').value = m.maxo || '';
+
+    // DLS
+    document.getElementById('f-dls').checked = !!m.dls;
+    document.getElementById('dls-fields').style.display = m.dls ? '' : 'none';
+    if (m.dls) {
+      document.getElementById('f-dls-type').value     = m.dlsScenario || 'concluded';
+      document.getElementById('f-dls-target').value   = m.dlsTarget || '';
+      document.getElementById('f-dls-par').value      = m.dlsPar || '';
+      const sc = m.dlsScenario || 'concluded';
+      document.getElementById('dls-target-field').style.display = sc === 'concluded' ? '' : 'none';
+      document.getElementById('dls-par-field').style.display    = sc === 'abandoned'  ? '' : 'none';
+    }
+  }
+
+  if (m.type === 'forfeit') {
+    document.getElementById('f-forfeit').value = m.forfeit || 'team1';
+  }
+
+  // Enter edit mode
+  editingId = id;
+  document.getElementById('btn-submit').textContent = 'Update Match';
+  document.getElementById('edit-banner-teams').textContent = `${m.t1} vs ${m.t2}`;
+  document.getElementById('edit-banner').classList.add('on');
+
+  onFormChange();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+  editingId = null;
+  resetForm();
+}
+
+// ================================================================
+//  Delete
+// ================================================================
+function deleteMatch(id) {
+  if (!confirm('Remove this match from the ladder?')) return;
+  matches = matches.filter(m => m.id !== id);
+  save();
+  renderHistory();
+  toast('Match removed');
+}
+
+// ================================================================
+//  Tab switching
+// ================================================================
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'ladder')  renderLadder();
+  if (name === 'history') renderHistory();
+}
+
+// ================================================================
+//  Helpers
+// ================================================================
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+function updateTeamsList() {
+  const names = [...new Set(matches.flatMap(m => [m.t1, m.t2]))];
+  document.getElementById('dl-teams').innerHTML =
+    names.map(n => `<option value="${esc(n)}">`).join('');
+}
+
+function resetForm() {
+  document.getElementById('f-t1').value  = '';
+  document.getElementById('f-t2').value  = '';
+  document.getElementById('f-round').value = '';
+  document.getElementById('f-type').value = 'normal';
+  document.getElementById('f-t1r').value = '';
+  document.getElementById('f-t1o').value = '';
+  document.getElementById('f-t2r').value = '';
+  document.getElementById('f-t2o').value = '';
+  document.getElementById('f-reduced').checked = false;
+  document.getElementById('f-maxo').value = '';
+  document.getElementById('reduced-field').style.display = 'none';
+  document.getElementById('f-dls').checked = false;
+  document.getElementById('dls-fields').style.display = 'none';
+  document.getElementById('f-dls-target').value = '';
+  document.getElementById('f-dls-par').value = '';
+  document.getElementById('preview-box').classList.remove('on');
+  editingId = null;
+  document.getElementById('btn-submit').textContent = 'Add Match to Ladder';
+  document.getElementById('edit-banner').classList.remove('on');
+  onTypeChange();
+}
+
+// ── Init ──
+updateTeamsList();
+onTypeChange();
+</script>
+</body>
+</html>
