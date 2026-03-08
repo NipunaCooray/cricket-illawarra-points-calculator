@@ -291,6 +291,19 @@
       z-index: 999; white-space: nowrap; pointer-events: none;
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Utility buttons (Export/Import) ── */
+    .btn-utility {
+      background: rgba(255,255,255,.13);
+      border: 1px solid rgba(255,255,255,.28);
+      color: rgba(255,255,255,.88);
+      font-size: .74rem; font-weight: 600;
+      padding: .35rem .85rem;
+      border-radius: 7px 7px 0 0;
+      cursor: pointer; font-family: inherit;
+      transition: all .15s; white-space: nowrap;
+    }
+    .btn-utility:hover { background: rgba(255,255,255,.24); color: #fff; }
   </style>
 </head>
 <body>
@@ -305,6 +318,9 @@
     <button class="tab-btn active" onclick="showTab('add',this)">Add Match</button>
     <button class="tab-btn"        onclick="showTab('ladder',this)">Points Ladder</button>
     <button class="tab-btn"        onclick="showTab('history',this)">Match History</button>
+    <div style="flex:1"></div>
+    <button class="btn-utility" onclick="importData()" title="Import matches from a JSON file">&#8593; Import</button>
+    <button class="btn-utility" onclick="exportData()" title="Export all matches to a JSON file">&#8595; Export</button>
   </div>
 </header>
 
@@ -495,6 +511,7 @@
 </main>
 
 <datalist id="dl-teams"></datalist>
+<input type="file" id="import-file" accept=".json" style="display:none" onchange="onImportFile(event)">
 <div id="toast" class="toast"></div>
 
 <script>
@@ -1069,6 +1086,57 @@ function resetForm() {
   document.getElementById('btn-submit').textContent = 'Add Match to Ladder';
   document.getElementById('edit-banner').classList.remove('on');
   onTypeChange();
+}
+
+// ================================================================
+//  Export / Import
+// ================================================================
+function exportData() {
+  if (matches.length === 0) { toast('No match data to export'); return; }
+  const json = JSON.stringify(matches, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `cricket-illawarra-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(`Exported ${matches.length} match${matches.length !== 1 ? 'es' : ''}`);
+}
+
+function importData() {
+  document.getElementById('import-file').click();
+}
+
+function onImportFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!Array.isArray(data)) throw new Error('not an array');
+      const existingIds = new Set(matches.map(m => m.id));
+      const incoming    = data.filter(m => m.id && m.t1 && m.t2);
+      const fresh       = incoming.filter(m => !existingIds.has(m.id));
+      const skipped     = incoming.length - fresh.length;
+      if (fresh.length === 0) {
+        toast(skipped > 0 ? `All ${skipped} matches already exist — nothing imported` : 'No valid matches found in file');
+      } else {
+        matches = [...matches, ...fresh];
+        save();
+        updateTeamsList();
+        renderLadder();
+        renderHistory();
+        const skipMsg = skipped > 0 ? ` (${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped)` : '';
+        toast(`Imported ${fresh.length} match${fresh.length !== 1 ? 'es' : ''}${skipMsg}`);
+      }
+    } catch (err) {
+      toast('Import failed — invalid or unrecognised JSON file');
+    }
+    e.target.value = ''; // reset so same file can be re-imported if needed
+  };
+  reader.readAsText(file);
 }
 
 // ── Init ──
